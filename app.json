@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "VulaStock",
+    "slug": "vulastock-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.celestialjones.vulastockmobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.celestialjones.vulastockmobile"
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c3a8de20-0274-4cc8-88b3-d709a7d32847"
+      }
+    },
+    "owner": "celestialjones"
+  }
+}
