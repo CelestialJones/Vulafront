@@ -219,4 +219,3 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   }
 })
-//teste
