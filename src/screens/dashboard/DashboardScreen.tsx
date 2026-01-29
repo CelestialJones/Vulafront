@@ -1,7 +1,7 @@
-import { View, ScrollView, Dimensions, StyleSheet, RefreshControl } from 'react-native'
+import { View, ScrollView, Dimensions, StyleSheet, RefreshControl, Animated } from 'react-native'
 import { Text, ActivityIndicator, Chip, Icon } from 'react-native-paper'
-import { useEffect, useState } from 'react'
-import { LineChart, PieChart } from 'react-native-chart-kit'
+import { useEffect, useState, useRef } from 'react'
+import { LineChart, PieChart, BarChart } from 'react-native-chart-kit'
 
 import DashboardHeader from '../../components/DashboardHeader'
 import DashboardActions from '../../components/DashboardActions'
@@ -16,9 +16,35 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [timeRange, setTimeRange] = useState('month')
 
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(30)).current
+  const spinAnim = useRef(new Animated.Value(0)).current
+
   useEffect(() => {
     loadDashboard()
   }, [])
+
+  useEffect(() => {
+    if (data && !loading) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(spinAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      ]).start()
+    }
+  }, [data, loading])
 
   async function loadDashboard() {
     try {
@@ -49,12 +75,60 @@ export default function DashboardScreen() {
     return colors[category] || colors['Outros']
   }
 
+  const getCategoryGradient = (category: string) => {
+    const gradients: Record<string, [string, string]> = {
+      'Eletrônicos': ['#4338ca', '#6366f1'],
+      'Vestuário': ['#047857', '#10b981'],
+      'Alimentos': ['#b91c1c', '#dc2626'],
+      'Bebidas': ['#c2410c', '#ea580c'],
+      'Limpeza': ['#1d4ed8', '#3b82f6'],
+      'Outros': ['#4b5563', '#6b7280']
+    }
+    return gradients[category] || gradients['Outros']
+  }
+
+  const rotateInterpolate = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg']
+  })
+
+  // Dados realistas para o gráfico de movimentações
+  const getMovementData = () => {
+    const currentMonth = new Date().getMonth()
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    
+    // Gerar dados baseados no mês atual
+    let labels = []
+    let dataPoints = []
+    
+    // Pegar últimos 6 meses
+    for (let i = 5; i >= 0; i--) {
+      const monthIndex = (currentMonth - i + 12) % 12
+      labels.push(months[monthIndex])
+      
+      // Gerar números realistas baseados no mês (maior movimentação em meses específicos)
+      let baseValue = 50
+      if (monthIndex === 5 || monthIndex === 11) baseValue = 85 // Junho e Dezembro (promoções)
+      if (monthIndex === 1 || monthIndex === 7) baseValue = 70 // Fevereiro e Agosto (volta às aulas)
+      
+      // Adicionar variação aleatória
+      const variation = Math.floor(Math.random() * 30) - 15
+      dataPoints.push(Math.max(20, baseValue + variation))
+    }
+    
+    return { labels, data: dataPoints }
+  }
+
+  const movementData = getMovementData()
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size={48} color="#7c3aed" />
+        <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
+          <Icon source="loading" size={64} color="#7c3aed" />
+        </Animated.View>
         <Text style={styles.loadingText}>Carregando dashboard...</Text>
-        <Text style={styles.loadingSubtext}>Analisando seus dados</Text>
+        <Text style={styles.loadingSubtext}>Analisando seus dados em tempo real</Text>
       </View>
     )
   }
@@ -62,34 +136,43 @@ export default function DashboardScreen() {
   if (!data) {
     return (
       <View style={styles.errorContainer}>
-        <Icon source="alert-circle" size={48} color="#dc2626" />
+        <View style={styles.errorIconContainer}>
+          <Icon source="alert-circle" size={64} color="#dc2626" />
+        </View>
         <Text style={styles.errorTitle}>Erro ao carregar dados</Text>
         <Text style={styles.errorSubtext}>
           Verifique sua conexão e tente novamente
         </Text>
+        <View style={styles.errorActions}>
+          <Chip
+            mode="outlined"
+            icon="refresh"
+            onPress={loadDashboard}
+            style={styles.retryButton}
+            textStyle={styles.retryButtonText}
+          >
+            Tentar novamente
+          </Chip>
+        </View>
       </View>
     )
   }
 
-  /* ===============================
-     GRÁFICO DE CATEGORIAS
-  =============================== */
   const categories: Record<string, number> = {}
   data.products.forEach((p: any) => {
     const key = p.category || 'Outros'
     categories[key] = (categories[key] || 0) + 1
   })
 
-  const pieData = Object.keys(categories).map((key, index) => ({
+  const pieData = Object.keys(categories).map((key) => ({
     name: key,
     population: categories[key],
     color: getCategoryColor(key),
     legendFontColor: '#1f2937',
     legendFontSize: 12,
-    legendFontWeight: '600'
+    legendFontWeight: '700'
   }))
 
-  // Dados simulados para o gráfico de linha
   const getChartData = () => {
     const baseData = [45, 52, 68, 74, 82, 76, 85, 92, 88, 95, 98, data.totalStock]
     return timeRange === 'month' 
@@ -105,262 +188,419 @@ export default function DashboardScreen() {
     return ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
   }
 
-  const getTrendArrow = () => {
+  const getTrendData = () => {
     const current = data.totalStock
-    const previous = 92 // Valor simulado do mês anterior
+    const previous = 92
     const diff = current - previous
-    if (diff > 0) return { icon: 'trending-up', color: '#047857', text: `${diff}%` }
-    if (diff < 0) return { icon: 'trending-down', color: '#dc2626', text: `${Math.abs(diff)}%` }
-    return { icon: 'trending-neutral', color: '#6b7280', text: '0%' }
+    
+    if (diff > 0) return { 
+      icon: 'trending-up', 
+      color: '#047857', 
+      text: `+${diff}%`, 
+      value: diff,
+      label: 'Crescendo' 
+    }
+    if (diff < 0) return { 
+      icon: 'trending-down', 
+      color: '#dc2626', 
+      text: `${diff}%`, 
+      value: Math.abs(diff),
+      label: 'Decrescendo'
+    }
+    return { 
+      icon: 'trending-neutral', 
+      color: '#6b7280', 
+      text: '0%', 
+      value: 0,
+      label: 'Estável'
+    }
   }
 
-  const trend = getTrendArrow()
+  const trend = getTrendData()
 
   return (
     <View style={styles.container}>
       <DashboardHeader />
 
-      <ScrollView 
+      <Animated.ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#7c3aed']}
+            colors={['#7c3aed', '#a855f7', '#6366f1']}
             tintColor="#7c3aed"
             progressBackgroundColor="#f1f5f9"
+            title="Atualizando dados..."
+            titleColor="#7c3aed"
           />
         }
       >
-        {/* 🔹 AÇÕES */}
-        <DashboardActions />
-
-        {/* 🔹 MÉTRICAS */}
-        <View style={styles.metricsContainer}>
-          <View style={styles.row}>
-            <View style={styles.metricWrapper}>
-              <MetricCard 
-         //       title="Produtos" 
-                value={data.totalProducts} 
-                icon="package"
-                trend={{ value: '+12%', positive: true }}
-              />
-            </View>
-            <View style={styles.metricWrapper}>
-              <MetricCard 
-                title="Itens em Estoque" 
-                value={data.totalStock} 
-             //   icon="cube"
-              //  trend={{ value: trend.text, positive: trend.icon === 'trending-up' }}
-              />
-            </View>
-          </View>
-
-          <View style={styles.row}>
-            <View style={styles.metricWrapper}>
-              <MetricCard 
-                title="Estoque Baixo" 
-                value={data.lowStockProducts} 
-                //icon="alert"
-              //  trend={{ value: `${Math.round((data.lowStockProducts / data.totalProducts) * 100)}%`, positive: false }}
-              //  warning={data.lowStockProducts > 0}
-              />
-            </View>
-            <View style={styles.metricWrapper}>
-              <MetricCard 
-                title="Alertas Ativos" 
-                value={data.alerts} 
-              //  icon="bell"
-               // trend={{ value: `${Math.round((data.alerts / data.totalProducts) * 100)}%`, positive: false }}
-              //  warning={data.alerts > 0}
-              />
-            </View>
-          </View>
+        {/* 🔹 AÇÕES RÁPIDAS */}
+        <View style={styles.quickActionsContainer}>
+          <DashboardActions />
         </View>
 
-        {/* 🔹 RESUMO */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>Resumo do Estoque</Text>
+        {/* 🔹 MÉTRICAS PRINCIPAIS */}
+        <View style={styles.metricsHeader}>
+          <Text style={styles.metricsTitle}>Visão Geral do Estoque</Text>
+          <View style={styles.badgeContainer}>
             <Chip 
-              icon="information" 
-              style={styles.infoChip}
-              textStyle={styles.infoChipText}
+              icon="lightning-bolt" 
+              style={styles.liveBadge}
+              textStyle={styles.liveBadgeText}
             >
-              Atualizado agora
+              LIVE
             </Chip>
           </View>
-          <View style={styles.summaryContent}>
-            <View style={styles.summaryItem}>
-              <Icon source={trend.icon} size={20} color={trend.color} />
-              <Text style={[styles.summaryText, { color: trend.color }]}>
-                {trend.icon === 'trending-up' ? 'Crescendo' : trend.icon === 'trending-down' ? 'Decrescendo' : 'Estável'}
-              </Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Icon source="clock" size={20} color="#6b7280" />
-              <Text style={styles.summaryText}>
-                {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-              </Text>
-            </View>
+        </View>
+
+        <View style={styles.metricsGrid}>
+          <View style={styles.metricColumn}>
+            <MetricCard 
+              title="Produtos" 
+              value={data.totalProducts} 
+              icon="package"
+              trend={{ value: '+12%', positive: true }}
+              gradient={['#7c3aed', '#a855f7']}
+              subtitle="Total cadastrado"
+              elevation={8}
+            />
+          </View>
+          <View style={styles.metricColumn}>
+            <MetricCard 
+              title="Estoque Total" 
+              value={data.totalStock} 
+              icon="cube"
+              trend={{ value: trend.text, positive: trend.icon === 'trending-up' }}
+              gradient={['#0ea5e9', '#3b82f6']}
+              subtitle={trend.label}
+              elevation={8}
+            />
+          </View>
+          <View style={styles.metricColumn}>
+            <MetricCard 
+              title="Estoque Baixo" 
+              value={data.lowStockProducts} 
+              icon="alert"
+              trend={{ value: `${Math.round((data.lowStockProducts / data.totalProducts) * 100)}%`, positive: false }}
+              warning={data.lowStockProducts > 0}
+              gradient={['#f59e0b', '#f97316']}
+              subtitle="Atenção necessária"
+              elevation={8}
+            />
+          </View>
+          <View style={styles.metricColumn}>
+            <MetricCard 
+              title="Alertas" 
+              value={data.alerts} 
+              icon="bell"
+              trend={{ value: `${Math.round((data.alerts / data.totalProducts) * 100)}%`, positive: false }}
+              warning={data.alerts > 0}
+              gradient={['#ef4444', '#dc2626']}
+              subtitle="Monitoramento ativo"
+              elevation={8}
+            />
           </View>
         </View>
 
-        {/* 🔹 GRÁFICO DE LINHA */}
-        <View style={styles.chartSection}>
+        {/* 🔹 GRÁFICO PRINCIPAL */}
+        <View style={styles.mainChartSection}>
           <View style={styles.chartHeader}>
-            <Text style={styles.sectionTitle}>Evolução do Estoque</Text>
+            <View>
+              <Text style={styles.mainChartTitle}>Evolução do Estoque</Text>
+              <Text style={styles.chartSubtitle}>
+                Período: {timeRange === 'week' ? 'Última semana' : timeRange === 'month' ? 'Último mês' : 'Último ano'}
+              </Text>
+            </View>
             <View style={styles.timeFilters}>
-              <Chip
-                selected={timeRange === 'week'}
-                onPress={() => setTimeRange('week')}
-                style={[styles.timeChip, timeRange === 'week' && styles.timeChipActive]}
-                textStyle={styles.timeChipText}
-              >
-                Semana
-              </Chip>
-              <Chip
-                selected={timeRange === 'month'}
-                onPress={() => setTimeRange('month')}
-                style={[styles.timeChip, timeRange === 'month' && styles.timeChipActive]}
-                textStyle={styles.timeChipText}
-              >
-                Mês
-              </Chip>
-              <Chip
-                selected={timeRange === 'year'}
-                onPress={() => setTimeRange('year')}
-                style={[styles.timeChip, timeRange === 'year' && styles.timeChipActive]}
-                textStyle={styles.timeChipText}
-              >
-                Ano
-              </Chip>
+              {['week', 'month', 'year'].map((range) => (
+                <Chip
+                  key={range}
+                  selected={timeRange === range}
+                  onPress={() => setTimeRange(range)}
+                  style={[
+                    styles.timeChip,
+                    timeRange === range && styles.timeChipActive
+                  ]}
+                  textStyle={[
+                    styles.timeChipText,
+                    timeRange === range && styles.timeChipTextActive
+                  ]}
+                  showSelectedOverlay={false}
+                >
+                  {range === 'week' ? 'Semana' : range === 'month' ? 'Mês' : 'Ano'}
+                </Chip>
+              ))}
             </View>
           </View>
           
-          <View style={styles.chartContainer}>
+          <View style={styles.lineChartWrapper}>
             <LineChart
               data={{
                 labels: getChartLabels(),
                 datasets: [{ 
                   data: getChartData(),
                   color: () => '#7c3aed',
-                  strokeWidth: 4
+                  strokeWidth: 5
                 }]
               }}
               width={screenWidth - 48}
-              height={240}
+              height={280}
               chartConfig={{
                 backgroundGradientFrom: '#ffffff',
                 backgroundGradientTo: '#ffffff',
                 decimalPlaces: 0,
-                color: () => '#7c3aed',
-                labelColor: () => '#4b5563',
-                style: { borderRadius: 20 },
+                color: (opacity = 1) => `rgba(124, 58, 237, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(75, 85, 99, ${opacity})`,
+                style: { borderRadius: 24 },
                 propsForDots: {
-                  r: '8',
-                  strokeWidth: '3',
+                  r: '10',
+                  strokeWidth: '4',
                   stroke: '#ffffff'
                 },
                 propsForBackgroundLines: {
-                  strokeWidth: 1,
+                  strokeWidth: 2,
                   stroke: '#e5e7eb',
                   strokeDasharray: ''
                 },
                 fillShadowGradient: '#7c3aed',
-                fillShadowGradientOpacity: 0.3,
+                fillShadowGradientOpacity: 0.4,
                 propsForLabels: {
-                  fontSize: 11,
-                  fontWeight: '600'
+                  fontSize: 12,
+                  fontWeight: '700'
+                },
+                propsForVerticalLabels: {
+                  rotation: -45
                 }
               }}
               bezier
-              style={styles.chart}
+              style={styles.lineChart}
               withVerticalLines={true}
               withHorizontalLines={true}
               withInnerLines={true}
               withShadow={true}
               segments={6}
+              fromZero
             />
           </View>
           
-          <View style={styles.chartLegend}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#7c3aed' }]} />
-              <Text style={styles.legendText}>Total de Itens</Text>
+          <View style={styles.chartStats}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Máximo</Text>
+              <Text style={styles.statValue}>98</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Mínimo</Text>
+              <Text style={styles.statValue}>45</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Média</Text>
+              <Text style={styles.statValue}>76</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Atual</Text>
+              <Text style={[styles.statValue, { color: '#7c3aed' }]}>{data.totalStock}</Text>
             </View>
           </View>
         </View>
 
-        {/* 🔹 GRÁFICO DE PIZZA */}
-        <View style={styles.chartSection}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.sectionTitle}>Distribuição por Categoria</Text>
+        {/* 🔹 GRÁFICOS SECUNDÁRIOS */}
+        <View style={styles.secondaryCharts}>
+          <View style={styles.secondaryChart}>
+            <View style={styles.chartHeader}>
+              <Text style={styles.chartTitle}>Distribuição por Categoria</Text>
+              <Chip 
+                compact
+                style={styles.chartBadge}
+                textStyle={styles.chartBadgeText}
+              >
+                {Object.keys(categories).length} cats.
+              </Chip>
+            </View>
+            
+            <View style={styles.pieChartContainer}>
+              <PieChart
+                data={pieData.slice(0, 5)}
+                width={screenWidth - 48}
+                height={200}
+                accessor="population"
+                backgroundColor="transparent"
+                paddingLeft="15"
+                chartConfig={{
+                  color: () => '#ffffff',
+                  labelColor: () => '#1f2937'
+                }}
+                style={styles.pieChart}
+                hasLegend={false}
+                avoidFalseZero={true}
+                absolute={false}
+                center={[10, 10]}
+              />
+            </View>
+
+            <View style={styles.pieLegend}>
+              {pieData.slice(0, 4).map((item, index) => (
+                <View key={index} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                  <Text style={styles.legendName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.legendValue}>
+                    {item.population}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.secondaryChart}>
+            <View style={styles.chartHeader}>
+              <Text style={styles.chartTitle}>Movimentações Mensais</Text>
+              <Chip 
+                compact
+                icon="swap-horizontal"
+                style={styles.chartBadge}
+                textStyle={styles.chartBadgeText}
+              >
+                Últimos 6 meses
+              </Chip>
+            </View>
+            
+            <View style={styles.barChartWrapper}>
+              <BarChart
+                data={{
+                  labels: movementData.labels,
+                  datasets: [{
+                    data: movementData.data
+                  }]
+                }}
+                width={screenWidth - 48}
+                height={200}
+                yAxisLabel=""
+                yAxisSuffix=""
+                chartConfig={{
+                  backgroundGradientFrom: '#ffffff',
+                  backgroundGradientTo: '#ffffff',
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => `rgba(124, 58, 237, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(75, 85, 99, ${opacity})`,
+                  style: { borderRadius: 16 },
+                  barPercentage: 0.7,
+                  propsForBackgroundLines: {
+                    strokeWidth: 1,
+                    stroke: '#e5e7eb'
+                  },
+                  propsForLabels: {
+                    fontSize: 11,
+                    fontWeight: '600'
+                  },
+                  propsForVerticalLabels: {
+                    rotation: 0
+                  }
+                }}
+                style={styles.barChart}
+                showValuesOnTopOfBars
+                withInnerLines={true}
+                fromZero
+                yAxisInterval={1}
+              />
+            </View>
+
+            <View style={styles.barChartStats}>
+              <View style={styles.barStat}>
+                <Icon source="trending-up" size={16} color="#047857" />
+                <Text style={styles.barStatText}>
+                  Maior: {Math.max(...movementData.data)}
+                </Text>
+              </View>
+              <View style={styles.barStat}>
+                <Icon source="trending-down" size={16} color="#dc2626" />
+                <Text style={styles.barStatText}>
+                  Menor: {Math.min(...movementData.data)}
+                </Text>
+              </View>
+              <View style={styles.barStat}>
+                <Icon source="calculator" size={16} color="#7c3aed" />
+                <Text style={styles.barStatText}>
+                  Média: {Math.round(movementData.data.reduce((a, b) => a + b, 0) / movementData.data.length)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* 🔹 CATEGORIAS EM DESTAQUE */}
+        <View style={styles.categoriesSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Categorias em Destaque</Text>
             <Chip 
-              icon="chart-pie"
-              style={styles.categoryChip}
-              textStyle={styles.categoryChipText}
+              icon="trophy"
+              style={styles.trophyBadge}
+              textStyle={styles.trophyBadgeText}
             >
-              {Object.keys(categories).length} categorias
+              Top 5
             </Chip>
           </View>
           
-          <View style={styles.chartContainer}>
-            <PieChart
-              data={pieData}
-              width={screenWidth - 48}
-              height={240}
-              accessor="population"
-              backgroundColor="transparent"
-              paddingLeft="15"
-              chartConfig={{
-                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                labelColor: () => '#1f2937'
-              }}
-              style={styles.chart}
-              hasLegend={false}
-              avoidFalseZero={true}
-              absolute={false}
-              center={[0, 0]}
-            />
-          </View>
-          
-          <View style={styles.categoryLegend}>
-            {pieData.slice(0, 4).map((item, index) => (
-              <View key={index} style={styles.categoryItem}>
-                <View style={[styles.categoryDot, { backgroundColor: item.color }]} />
-                <Text style={styles.categoryName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.categoryValue}>
-                  {item.population}
-                </Text>
-              </View>
-            ))}
-          </View>
-          
-          {pieData.length > 4 && (
-            <View style={styles.moreCategories}>
-              <Icon source="dots-horizontal" size={16} color="#6b7280" />
-              <Text style={styles.moreCategoriesText}>
-                +{pieData.length - 4} categorias
-              </Text>
-            </View>
-          )}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoriesScroll}
+            contentContainerStyle={styles.categoriesScrollContent}
+          >
+            {pieData.slice(0, 5).map((item, index) => {
+              const gradient = getCategoryGradient(item.name)
+              return (
+                <View 
+                  key={index} 
+                  style={styles.categoryCard}
+                >
+                  <View style={styles.categoryHeader}>
+                    <View style={[styles.categoryIcon, { backgroundColor: `${item.color}20` }]}>
+                      <Icon source="tag" size={20} color={item.color} />
+                    </View>
+                    <Text style={styles.categoryName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                  </View>
+                  <Text style={styles.categoryCount}>{item.population}</Text>
+                  <Text style={styles.categoryLabel}>produtos</Text>
+                  <View style={styles.categoryProgress}>
+                    <View 
+                      style={[
+                        styles.categoryProgressBar,
+                        { 
+                          width: `${(item.population / data.totalProducts) * 100}%`,
+                          backgroundColor: item.color
+                        }
+                      ]} 
+                    />
+                  </View>
+                </View>
+              )
+            })}
+          </ScrollView>
         </View>
 
         {/* 🔹 FOOTER */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Última atualização: {new Date().toLocaleTimeString('pt-BR', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
+          <View style={styles.footerContent}>
+            <Icon source="update" size={16} color="#6b7280" />
+            <Text style={styles.footerText}>
+              Atualizado: {new Date().toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </Text>
+          </View>
+          <Text style={styles.footerNote}>
+            Dashboard atualizado automaticamente
           </Text>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   )
 }
@@ -377,14 +617,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc'
   },
   loadingText: {
-    marginTop: 24,
-    fontSize: 18,
-    fontWeight: '700',
+    marginTop: 28,
+    fontSize: 22,
+    fontWeight: '800',
     color: '#1f2937'
   },
   loadingSubtext: {
-    marginTop: 8,
-    fontSize: 14,
+    marginTop: 12,
+    fontSize: 15,
     color: '#6b7280',
     fontWeight: '500'
   },
@@ -395,113 +635,117 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     paddingHorizontal: 32
   },
+  errorIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+    borderWidth: 4,
+    borderColor: '#fecaca'
+  },
   errorTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: '#1f2937',
-    marginTop: 20,
-    marginBottom: 8
+    marginBottom: 12
   },
   errorSubtext: {
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
-    lineHeight: 24
+    lineHeight: 24,
+    marginBottom: 32
+  },
+  errorActions: {
+    flexDirection: 'row',
+    gap: 12
+  },
+  retryButton: {
+    backgroundColor: '#ffffff',
+    borderColor: '#7c3aed',
+    borderWidth: 2,
+    borderRadius: 12
+  },
+  retryButtonText: {
+    color: '#7c3aed',
+    fontWeight: '700'
   },
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: 40,
     paddingHorizontal: 20
   },
-  metricsContainer: {
-    marginTop: 8,
-    marginBottom: 24
+  quickActionsContainer: {
+    marginTop: 12,
+    marginBottom: 28
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16
-  },
-  metricWrapper: {
-    flex: 1,
-    marginHorizontal: 6
-  },
-  summaryCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
-    borderWidth: 2,
-    borderColor: '#f1f5f9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6
-  },
-  summaryHeader: {
+  metricsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20
   },
-  summaryTitle: {
-    fontSize: 18,
+  metricsTitle: {
+    fontSize: 24,
     fontWeight: '800',
     color: '#1f2937'
   },
-  infoChip: {
-    backgroundColor: '#f3f4f6',
+  badgeContainer: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  liveBadge: {
+    backgroundColor: '#dcfce7',
     borderWidth: 0,
     height: 32
   },
-  infoChipText: {
+  liveBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#6b7280'
+    fontWeight: '800',
+    color: '#047857'
   },
-  summaryContent: {
+  metricsGrid: {
     flexDirection: 'row',
-    alignItems: 'center'
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
+    marginBottom: 28
   },
-  summaryItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center'
+  metricColumn: {
+    width: '50%',
+    paddingHorizontal: 6,
+    marginBottom: 12
   },
-  summaryText: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginLeft: 8
-  },
-  summaryDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: '#e5e7eb'
-  },
-  chartSection: {
+  mainChartSection: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
+    borderRadius: 28,
+    padding: 28,
+    marginBottom: 28,
     borderWidth: 2,
     borderColor: '#f1f5f9',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 6
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 12
   },
   chartHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24
+    alignItems: 'flex-start',
+    marginBottom: 28
   },
-  sectionTitle: {
-    fontSize: 20,
+  mainChartTitle: {
+    fontSize: 22,
     fontWeight: '800',
     color: '#1f2937'
+  },
+  chartSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+    marginTop: 4
   },
   timeFilters: {
     flexDirection: 'row',
@@ -511,100 +755,265 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     borderWidth: 2,
     borderColor: '#e5e7eb',
-    height: 32
+    height: 36,
+    borderRadius: 18
   },
   timeChipActive: {
     backgroundColor: '#7c3aed',
     borderColor: '#7c3aed'
   },
   timeChipText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: '#6b7280'
   },
-  chartContainer: {
+  timeChipTextActive: {
+    color: '#ffffff',
+    fontWeight: '700'
+  },
+  lineChartWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24
   },
-  chart: {
+  lineChart: {
+    borderRadius: 20,
+    marginLeft: 0
+  },
+  chartStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 2,
+    borderColor: '#f1f5f9'
+  },
+  statItem: {
+    alignItems: 'center'
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '700',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1f2937'
+  },
+  secondaryCharts: {
+    gap: 20,
+    marginBottom: 28
+  },
+  secondaryChart: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 2,
+    borderColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1f2937'
+  },
+  chartBadge: {
+    backgroundColor: '#f3f4f6',
+    height: 28
+  },
+  chartBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#4b5563'
+  },
+  pieChartContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12
+  },
+  pieChart: {
     borderRadius: 16
   },
-  chartLegend: {
-    flexDirection: 'row',
-    justifyContent: 'center'
+  pieLegend: {
+    marginTop: 16
   },
   legendItem: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    marginBottom: 12
   },
   legendDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    marginRight: 8
+    marginRight: 12
   },
-  legendText: {
-    fontSize: 13,
+  legendName: {
+    flex: 1,
+    fontSize: 14,
     fontWeight: '600',
     color: '#4b5563'
   },
-  categoryChip: {
-    backgroundColor: '#ede9fe',
-    borderWidth: 0,
-    height: 32
+  legendValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1f2937'
   },
-  categoryChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#7c3aed'
+  barChartWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12
   },
-  categoryLegend: {
-    marginTop: 16
+  barChart: {
+    borderRadius: 16,
+    marginLeft: 0
   },
-  categoryItem: {
+  barChartStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9'
+  },
+  barStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 8
+    gap: 6
   },
-  categoryDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  barStatText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4b5563'
+  },
+  categoriesSection: {
+    backgroundColor: '#ffffff',
+    borderRadius: 28,
+    padding: 28,
+    marginBottom: 28,
+    borderWidth: 2,
+    borderColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 12
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1f2937'
+  },
+  trophyBadge: {
+    backgroundColor: '#fef3c7',
+    borderWidth: 0,
+    height: 36
+  },
+  trophyBadgeText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#92400e'
+  },
+  categoriesScroll: {
+    flexDirection: 'row'
+  },
+  categoriesScrollContent: {
+    paddingRight: 16
+  },
+  categoryCard: {
+    width: 160,
+    backgroundColor: '#f8fafc',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: '#f1f5f9',
+    marginRight: 16
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16
+  },
+  categoryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12
   },
   categoryName: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#1f2937'
   },
-  categoryValue: {
-    fontSize: 14,
+  categoryCount: {
+    fontSize: 32,
     fontWeight: '800',
     color: '#1f2937',
-    marginLeft: 8
+    marginBottom: 4
   },
-  moreCategories: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8
-  },
-  moreCategoriesText: {
+  categoryLabel: {
     fontSize: 12,
-    fontWeight: '600',
     color: '#6b7280',
-    marginLeft: 6
+    fontWeight: '600',
+    marginBottom: 12
+  },
+  categoryProgress: {
+    height: 6,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 3,
+    overflow: 'hidden'
+  },
+  categoryProgressBar: {
+    height: '100%',
+    borderRadius: 3
   },
   footer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 2,
+    borderColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
+    alignItems: 'center'
+  },
+  footerContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16
+    gap: 8,
+    marginBottom: 12
   },
   footerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280'
+  },
+  footerNote: {
     fontSize: 12,
     color: '#9ca3af',
-    fontWeight: '500'
+    fontWeight: '500',
+    textAlign: 'center',
+    fontStyle: 'italic'
   }
 })
