@@ -309,7 +309,7 @@ export default function DashboardScreen() {
         {/* 🔹 GRÁFICO PRINCIPAL */}
         <View style={styles.mainChartSection}>
           <View style={styles.chartHeader}>
-            <View>
+            <View style={styles.chartTitleContainer}>
               <Text style={styles.mainChartTitle}>Evolução do Estoque</Text>
               <Text style={styles.chartSubtitle}>
                 Período: {timeRange === 'week' ? 'Última semana' : timeRange === 'month' ? 'Último mês' : 'Último ano'}
@@ -330,6 +330,7 @@ export default function DashboardScreen() {
                     timeRange === range && styles.timeChipTextActive
                   ]}
                   showSelectedOverlay={false}
+                  compact
                 >
                   {range === 'week' ? 'Semana' : range === 'month' ? 'Mês' : 'Ano'}
                 </Chip>
@@ -734,12 +735,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 28
+    marginBottom: 28,
+    flexWrap: 'wrap'
+  },
+  chartTitleContainer: {
+    flex: 1,
+    minWidth: '60%',
+    marginRight: 12,
+    marginBottom: 12
   },
   mainChartTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#1f2937'
+    color: '#1f2937',
+    lineHeight: 28
   },
   chartSubtitle: {
     fontSize: 14,
@@ -749,23 +758,27 @@ const styles = StyleSheet.create({
   },
   timeFilters: {
     flexDirection: 'row',
-    gap: 8
+    gap: 8,
+    flexWrap: 'wrap',
+    maxWidth: '40%'
   },
   timeChip: {
     backgroundColor: '#f3f4f6',
     borderWidth: 2,
     borderColor: '#e5e7eb',
-    height: 36,
-    borderRadius: 18
+    height: 32,
+    borderRadius: 16,
+    minWidth: 70
   },
   timeChipActive: {
     backgroundColor: '#7c3aed',
     borderColor: '#7c3aed'
   },
   timeChipText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#6b7280'
+    color: '#6b7280',
+    textAlign: 'center'
   },
   timeChipTextActive: {
     color: '#ffffff',
@@ -787,23 +800,29 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     borderWidth: 2,
-    borderColor: '#f1f5f9'
+    borderColor: '#f1f5f9',
+    flexWrap: 'wrap',
+    gap: 16
   },
   statItem: {
-    alignItems: 'center'
+    alignItems: 'center',
+    minWidth: '20%',
+    flex: 1
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6b7280',
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 6,
     textTransform: 'uppercase',
-    letterSpacing: 0.8
+    letterSpacing: 0.8,
+    textAlign: 'center'
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
-    color: '#1f2937'
+    color: '#1f2937',
+    textAlign: 'center'
   },
   secondaryCharts: {
     gap: 20,
@@ -883,12 +902,16 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9'
+    borderTopColor: '#f1f5f9',
+    flexWrap: 'wrap',
+    gap: 12
   },
   barStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 6,
+    flex: 1,
+    minWidth: '30%'
   },
   barStatText: {
     fontSize: 12,
