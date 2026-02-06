@@ -10,13 +10,14 @@ interface Props {
   gradient?: string[]
   subtitle?: string
   elevation?: number
+  color?: string
 }
 
-export default function MetricCard({ title, value, icon, trend, warning, gradient, subtitle, elevation }: Props) {
+export default function MetricCard({ title, value, icon, trend, warning, gradient, subtitle, elevation, color }: Props) {
   const cardStyle = [
     styles.card,
     warning && styles.warningCard,
-    gradient && gradient.length > 0 ? { backgroundColor: gradient[0] } : null,
+    gradient && gradient.length > 0 ? { backgroundColor: gradient[0] } : color ? { borderLeftWidth: 4, borderLeftColor: color } : null,
     elevation ? { elevation } : null
   ]
 

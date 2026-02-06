@@ -65,26 +65,14 @@ export default function DashboardScreen() {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      'Eletrônicos': '#4338ca',
-      'Vestuário': '#047857',
-      'Alimentos': '#b91c1c',
-      'Bebidas': '#c2410c',
-      'Limpeza': '#1d4ed8',
-      'Outros': '#4b5563'
+      'Eletrônicos': '#4f46e5',
+      'Vestuário': '#059669',
+      'Alimentos': '#dc2626',
+      'Bebidas': '#ea580c',
+      'Limpeza': '#2563eb',
+      'Outros': '#6b7280'
     }
     return colors[category] || colors['Outros']
-  }
-
-  const getCategoryGradient = (category: string) => {
-    const gradients: Record<string, [string, string]> = {
-      'Eletrônicos': ['#4338ca', '#6366f1'],
-      'Vestuário': ['#047857', '#10b981'],
-      'Alimentos': ['#b91c1c', '#dc2626'],
-      'Bebidas': ['#c2410c', '#ea580c'],
-      'Limpeza': ['#1d4ed8', '#3b82f6'],
-      'Outros': ['#4b5563', '#6b7280']
-    }
-    return gradients[category] || gradients['Outros']
   }
 
   const rotateInterpolate = spinAnim.interpolate({
@@ -97,21 +85,17 @@ export default function DashboardScreen() {
     const currentMonth = new Date().getMonth()
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     
-    // Gerar dados baseados no mês atual
     let labels = []
     let dataPoints = []
     
-    // Pegar últimos 6 meses
     for (let i = 5; i >= 0; i--) {
       const monthIndex = (currentMonth - i + 12) % 12
       labels.push(months[monthIndex])
       
-      // Gerar números realistas baseados no mês (maior movimentação em meses específicos)
       let baseValue = 50
-      if (monthIndex === 5 || monthIndex === 11) baseValue = 85 // Junho e Dezembro (promoções)
-      if (monthIndex === 1 || monthIndex === 7) baseValue = 70 // Fevereiro e Agosto (volta às aulas)
+      if (monthIndex === 5 || monthIndex === 11) baseValue = 85
+      if (monthIndex === 1 || monthIndex === 7) baseValue = 70
       
-      // Adicionar variação aleatória
       const variation = Math.floor(Math.random() * 30) - 15
       dataPoints.push(Math.max(20, baseValue + variation))
     }
@@ -125,7 +109,7 @@ export default function DashboardScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
-          <Icon source="loading" size={64} color="#7c3aed" />
+          <Icon source="loading" size={64} color="#4f46e5" />
         </Animated.View>
         <Text style={styles.loadingText}>Carregando dashboard...</Text>
         <Text style={styles.loadingSubtext}>Analisando seus dados em tempo real</Text>
@@ -195,7 +179,7 @@ export default function DashboardScreen() {
     
     if (diff > 0) return { 
       icon: 'trending-up', 
-      color: '#047857', 
+      color: '#059669', 
       text: `+${diff}%`, 
       value: diff,
       label: 'Crescendo' 
@@ -230,11 +214,9 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#7c3aed', '#a855f7', '#6366f1']}
-            tintColor="#7c3aed"
-            progressBackgroundColor="#f1f5f9"
-            title="Atualizando dados..."
-            titleColor="#7c3aed"
+            colors={['#4f46e5']}
+            tintColor="#4f46e5"
+            progressBackgroundColor="#f8fafc"
           />
         }
       >
@@ -248,11 +230,11 @@ export default function DashboardScreen() {
           <Text style={styles.metricsTitle}>Visão Geral do Estoque</Text>
           <View style={styles.badgeContainer}>
             <Chip 
-              icon="lightning-bolt" 
+              icon="update" 
               style={styles.liveBadge}
               textStyle={styles.liveBadgeText}
             >
-              LIVE
+              Em tempo real
             </Chip>
           </View>
         </View>
@@ -264,9 +246,9 @@ export default function DashboardScreen() {
               value={data.totalProducts} 
               icon="package"
               trend={{ value: '+12%', positive: true }}
-              gradient={['#7c3aed', '#a855f7']}
+              color="#4f46e5"
               subtitle="Total cadastrado"
-              elevation={8}
+              elevation={4}
             />
           </View>
           <View style={styles.metricColumn}>
@@ -275,9 +257,9 @@ export default function DashboardScreen() {
               value={data.totalStock} 
               icon="cube"
               trend={{ value: trend.text, positive: trend.icon === 'trending-up' }}
-              gradient={['#0ea5e9', '#3b82f6']}
+              color="#2563eb"
               subtitle={trend.label}
-              elevation={8}
+              elevation={4}
             />
           </View>
           <View style={styles.metricColumn}>
@@ -287,9 +269,9 @@ export default function DashboardScreen() {
               icon="alert"
               trend={{ value: `${Math.round((data.lowStockProducts / data.totalProducts) * 100)}%`, positive: false }}
               warning={data.lowStockProducts > 0}
-              gradient={['#f59e0b', '#f97316']}
+              color="#ea580c"
               subtitle="Atenção necessária"
-              elevation={8}
+              elevation={4}
             />
           </View>
           <View style={styles.metricColumn}>
@@ -299,9 +281,9 @@ export default function DashboardScreen() {
               icon="bell"
               trend={{ value: `${Math.round((data.alerts / data.totalProducts) * 100)}%`, positive: false }}
               warning={data.alerts > 0}
-              gradient={['#ef4444', '#dc2626']}
+              color="#dc2626"
               subtitle="Monitoramento ativo"
-              elevation={8}
+              elevation={4}
             />
           </View>
         </View>
@@ -344,34 +326,34 @@ export default function DashboardScreen() {
                 labels: getChartLabels(),
                 datasets: [{ 
                   data: getChartData(),
-                  color: () => '#7c3aed',
-                  strokeWidth: 5
+                  color: () => '#4f46e5',
+                  strokeWidth: 3
                 }]
               }}
               width={screenWidth - 48}
-              height={280}
+              height={260}
               chartConfig={{
                 backgroundGradientFrom: '#ffffff',
                 backgroundGradientTo: '#ffffff',
                 decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(124, 58, 237, ${opacity})`,
+                color: (opacity = 1) => `rgba(79, 70, 229, ${opacity})`,
                 labelColor: (opacity = 1) => `rgba(75, 85, 99, ${opacity})`,
-                style: { borderRadius: 24 },
+                style: { borderRadius: 16 },
                 propsForDots: {
-                  r: '10',
-                  strokeWidth: '4',
+                  r: '6',
+                  strokeWidth: '2',
                   stroke: '#ffffff'
                 },
                 propsForBackgroundLines: {
-                  strokeWidth: 2,
+                  strokeWidth: 1,
                   stroke: '#e5e7eb',
                   strokeDasharray: ''
                 },
-                fillShadowGradient: '#7c3aed',
-                fillShadowGradientOpacity: 0.4,
+                fillShadowGradient: '#4f46e5',
+                fillShadowGradientOpacity: 0.2,
                 propsForLabels: {
-                  fontSize: 12,
-                  fontWeight: '700'
+                  fontSize: 11,
+                  fontWeight: '600'
                 },
                 propsForVerticalLabels: {
                   rotation: -45
@@ -379,11 +361,11 @@ export default function DashboardScreen() {
               }}
               bezier
               style={styles.lineChart}
-              withVerticalLines={true}
+              withVerticalLines={false}
               withHorizontalLines={true}
-              withInnerLines={true}
-              withShadow={true}
-              segments={6}
+              withInnerLines={false}
+              withShadow={false}
+              segments={5}
               fromZero
             />
           </View>
@@ -403,7 +385,7 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Atual</Text>
-              <Text style={[styles.statValue, { color: '#7c3aed' }]}>{data.totalStock}</Text>
+              <Text style={[styles.statValue, { color: '#4f46e5' }]}>{data.totalStock}</Text>
             </View>
           </View>
         </View>
@@ -426,7 +408,7 @@ export default function DashboardScreen() {
               <PieChart
                 data={pieData.slice(0, 5)}
                 width={screenWidth - 48}
-                height={200}
+                height={180}
                 accessor="population"
                 backgroundColor="transparent"
                 paddingLeft="15"
@@ -479,23 +461,23 @@ export default function DashboardScreen() {
                   }]
                 }}
                 width={screenWidth - 48}
-                height={200}
+                height={180}
                 yAxisLabel=""
                 yAxisSuffix=""
                 chartConfig={{
                   backgroundGradientFrom: '#ffffff',
                   backgroundGradientTo: '#ffffff',
                   decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(124, 58, 237, ${opacity})`,
+                  color: (opacity = 1) => `rgba(79, 70, 229, ${opacity})`,
                   labelColor: (opacity = 1) => `rgba(75, 85, 99, ${opacity})`,
-                  style: { borderRadius: 16 },
-                  barPercentage: 0.7,
+                  style: { borderRadius: 12 },
+                  barPercentage: 0.6,
                   propsForBackgroundLines: {
                     strokeWidth: 1,
                     stroke: '#e5e7eb'
                   },
                   propsForLabels: {
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: '600'
                   },
                   propsForVerticalLabels: {
@@ -504,7 +486,7 @@ export default function DashboardScreen() {
                 }}
                 style={styles.barChart}
                 showValuesOnTopOfBars
-                withInnerLines={true}
+                withInnerLines={false}
                 fromZero
                 yAxisInterval={1}
               />
@@ -512,7 +494,7 @@ export default function DashboardScreen() {
 
             <View style={styles.barChartStats}>
               <View style={styles.barStat}>
-                <Icon source="trending-up" size={16} color="#047857" />
+                <Icon source="trending-up" size={16} color="#059669" />
                 <Text style={styles.barStatText}>
                   Maior: {Math.max(...movementData.data)}
                 </Text>
@@ -524,7 +506,7 @@ export default function DashboardScreen() {
                 </Text>
               </View>
               <View style={styles.barStat}>
-                <Icon source="calculator" size={16} color="#7c3aed" />
+                <Icon source="calculator" size={16} color="#4f46e5" />
                 <Text style={styles.barStatText}>
                   Média: {Math.round(movementData.data.reduce((a, b) => a + b, 0) / movementData.data.length)}
                 </Text>
@@ -538,7 +520,7 @@ export default function DashboardScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Categorias em Destaque</Text>
             <Chip 
-              icon="trophy"
+              icon="star"
               style={styles.trophyBadge}
               textStyle={styles.trophyBadgeText}
             >
@@ -552,37 +534,34 @@ export default function DashboardScreen() {
             style={styles.categoriesScroll}
             contentContainerStyle={styles.categoriesScrollContent}
           >
-            {pieData.slice(0, 5).map((item, index) => {
-              const gradient = getCategoryGradient(item.name)
-              return (
-                <View 
-                  key={index} 
-                  style={styles.categoryCard}
-                >
-                  <View style={styles.categoryHeader}>
-                    <View style={[styles.categoryIcon, { backgroundColor: `${item.color}20` }]}>
-                      <Icon source="tag" size={20} color={item.color} />
-                    </View>
-                    <Text style={styles.categoryName} numberOfLines={1}>
-                      {item.name}
-                    </Text>
+            {pieData.slice(0, 5).map((item, index) => (
+              <View 
+                key={index} 
+                style={styles.categoryCard}
+              >
+                <View style={styles.categoryHeader}>
+                  <View style={[styles.categoryIcon, { backgroundColor: `${item.color}15` }]}>
+                    <Icon source="tag" size={18} color={item.color} />
                   </View>
-                  <Text style={styles.categoryCount}>{item.population}</Text>
-                  <Text style={styles.categoryLabel}>produtos</Text>
-                  <View style={styles.categoryProgress}>
-                    <View 
-                      style={[
-                        styles.categoryProgressBar,
-                        { 
-                          width: `${(item.population / data.totalProducts) * 100}%`,
-                          backgroundColor: item.color
-                        }
-                      ]} 
-                    />
-                  </View>
+                  <Text style={styles.categoryName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
                 </View>
-              )
-            })}
+                <Text style={styles.categoryCount}>{item.population}</Text>
+                <Text style={styles.categoryLabel}>produtos</Text>
+                <View style={styles.categoryProgress}>
+                  <View 
+                    style={[
+                      styles.categoryProgressBar,
+                      { 
+                        width: `${(item.population / data.totalProducts) * 100}%`,
+                        backgroundColor: item.color
+                      }
+                    ]} 
+                  />
+                </View>
+              </View>
+            ))}
           </ScrollView>
         </View>
 
@@ -609,47 +588,47 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc'
+    backgroundColor: '#ffffff'
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc'
+    backgroundColor: '#ffffff'
   },
   loadingText: {
     marginTop: 28,
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#1f2937'
   },
   loadingSubtext: {
     marginTop: 12,
     fontSize: 15,
     color: '#6b7280',
-    fontWeight: '500'
+    fontWeight: '400'
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     paddingHorizontal: 32
   },
   errorIconContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#fee2e2',
+    backgroundColor: '#fef2f2',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 28,
-    borderWidth: 4,
-    borderColor: '#fecaca'
+    borderWidth: 2,
+    borderColor: '#fee2e2'
   },
   errorTitle: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '700',
     color: '#1f2937',
     marginBottom: 12
   },
@@ -666,21 +645,21 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     backgroundColor: '#ffffff',
-    borderColor: '#7c3aed',
-    borderWidth: 2,
-    borderRadius: 12
+    borderColor: '#4f46e5',
+    borderWidth: 1,
+    borderRadius: 8
   },
   retryButtonText: {
-    color: '#7c3aed',
-    fontWeight: '700'
+    color: '#4f46e5',
+    fontWeight: '600'
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 32,
     paddingHorizontal: 20
   },
   quickActionsContainer: {
     marginTop: 12,
-    marginBottom: 28
+    marginBottom: 24
   },
   metricsHeader: {
     flexDirection: 'row',
@@ -689,8 +668,8 @@ const styles = StyleSheet.create({
     marginBottom: 20
   },
   metricsTitle: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '700',
     color: '#1f2937'
   },
   badgeContainer: {
@@ -698,14 +677,16 @@ const styles = StyleSheet.create({
     gap: 8
   },
   liveBadge: {
-    backgroundColor: '#dcfce7',
-    borderWidth: 0,
-    height: 32
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    height: 32,
+    borderRadius: 8
   },
   liveBadgeText: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#047857'
+    fontWeight: '600',
+    color: '#4f46e5'
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -720,22 +701,22 @@ const styles = StyleSheet.create({
   },
   mainChartSection: {
     backgroundColor: '#ffffff',
-    borderRadius: 28,
-    padding: 28,
-    marginBottom: 28,
-    borderWidth: 2,
-    borderColor: '#f1f5f9',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 12
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2
   },
   chartHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 28,
+    marginBottom: 24,
     flexWrap: 'wrap'
   },
   chartTitleContainer: {
@@ -745,15 +726,15 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   mainChartTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#1f2937',
-    lineHeight: 28
+    lineHeight: 24
   },
   chartSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6b7280',
-    fontWeight: '500',
+    fontWeight: '400',
     marginTop: 4
   },
   timeFilters: {
@@ -763,44 +744,44 @@ const styles = StyleSheet.create({
     maxWidth: '40%'
   },
   timeChip: {
-    backgroundColor: '#f3f4f6',
-    borderWidth: 2,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
     borderColor: '#e5e7eb',
-    height: 32,
-    borderRadius: 16,
-    minWidth: 70
+    height: 30,
+    borderRadius: 15,
+    minWidth: 65
   },
   timeChipActive: {
-    backgroundColor: '#7c3aed',
-    borderColor: '#7c3aed'
+    backgroundColor: '#4f46e5',
+    borderColor: '#4f46e5'
   },
   timeChipText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#6b7280',
     textAlign: 'center'
   },
   timeChipTextActive: {
     color: '#ffffff',
-    fontWeight: '700'
+    fontWeight: '600'
   },
   lineChartWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24
+    marginBottom: 20
   },
   lineChart: {
-    borderRadius: 20,
+    borderRadius: 12,
     marginLeft: 0
   },
   chartStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#f8fafc',
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 2,
-    borderColor: '#f1f5f9',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     flexWrap: 'wrap',
     gap: 16
   },
@@ -812,46 +793,49 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 11,
     color: '#6b7280',
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 6,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
     textAlign: 'center'
   },
   statValue: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1f2937',
     textAlign: 'center'
   },
   secondaryCharts: {
     gap: 20,
-    marginBottom: 28
+    marginBottom: 24
   },
   secondaryChart: {
     backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 2,
-    borderColor: '#f1f5f9',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2
   },
   chartTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1f2937'
   },
   chartBadge: {
-    backgroundColor: '#f3f4f6',
-    height: 28
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    height: 26,
+    borderRadius: 6
   },
   chartBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     color: '#4b5563'
   },
   pieChartContainer: {
@@ -860,7 +844,7 @@ const styles = StyleSheet.create({
     marginVertical: 12
   },
   pieChart: {
-    borderRadius: 16
+    borderRadius: 12
   },
   pieLegend: {
     marginTop: 16
@@ -868,23 +852,23 @@ const styles = StyleSheet.create({
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12
+    marginBottom: 10
   },
   legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10
   },
   legendName: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
     color: '#4b5563'
   },
   legendValue: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#1f2937'
   },
   barChartWrapper: {
@@ -893,7 +877,7 @@ const styles = StyleSheet.create({
     marginVertical: 12
   },
   barChart: {
-    borderRadius: 16,
+    borderRadius: 12,
     marginLeft: 0
   },
   barChartStats: {
@@ -902,7 +886,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: '#e5e7eb',
     flexWrap: 'wrap',
     gap: 12
   },
@@ -915,42 +899,44 @@ const styles = StyleSheet.create({
   },
   barStatText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#4b5563'
   },
   categoriesSection: {
     backgroundColor: '#ffffff',
-    borderRadius: 28,
-    padding: 28,
-    marginBottom: 28,
-    borderWidth: 2,
-    borderColor: '#f1f5f9',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 12
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24
+    marginBottom: 20
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#1f2937'
   },
   trophyBadge: {
-    backgroundColor: '#fef3c7',
-    borderWidth: 0,
-    height: 36
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    height: 32,
+    borderRadius: 8
   },
   trophyBadgeText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#92400e'
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4f46e5'
   },
   categoriesScroll: {
     flexDirection: 'row'
@@ -959,83 +945,78 @@ const styles = StyleSheet.create({
     paddingRight: 16
   },
   categoryCard: {
-    width: 160,
+    width: 140,
     backgroundColor: '#f8fafc',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: '#f1f5f9',
-    marginRight: 16
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginRight: 12
   },
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: 12
   },
   categoryIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12
+    marginRight: 10
   },
   categoryName: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#1f2937'
   },
   categoryCount: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '700',
     color: '#1f2937',
     marginBottom: 4
   },
   categoryLabel: {
     fontSize: 12,
     color: '#6b7280',
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 12
   },
   categoryProgress: {
-    height: 6,
+    height: 4,
     backgroundColor: '#e5e7eb',
-    borderRadius: 3,
+    borderRadius: 2,
     overflow: 'hidden'
   },
   categoryProgressBar: {
     height: '100%',
-    borderRadius: 3
+    borderRadius: 2
   },
   footer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 2,
-    borderColor: '#f1f5f9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     alignItems: 'center'
   },
   footerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12
+    marginBottom: 8
   },
   footerText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#6b7280'
   },
   footerNote: {
     fontSize: 12,
     color: '#9ca3af',
-    fontWeight: '500',
+    fontWeight: '400',
     textAlign: 'center',
     fontStyle: 'italic'
   }
